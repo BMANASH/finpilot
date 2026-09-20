@@ -7,6 +7,6 @@ numpy>=1.26.0
 pandas>=2.2.0
 
 # Intelligent Assistance & Environment Configuration
-google-generativeai
+google-genai>=1.10.0
 python-dotenv>=1.0.1
 pydantic>=2.7.0
