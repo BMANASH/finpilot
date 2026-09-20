@@ -1,72 +1,78 @@
-/* assets/style.css */
+/* assets/style.css - Institutional Fintech Theme */
 
-/* Main Background & Text */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+
+/* Main Background & Text - Deep Indigo for Trust */
 .stApp {
-    background-color: #0b0f19;
-    color: #e2e8f0;
+    background-color: #0A1128;
+    color: #F8FAFC;
+    font-family: 'Inter', sans-serif;
 }
 
-/* Hide the sidebar and top header by default for the landing page */
-[data-testid="collapsedControl"] {
-    display: none;
-}
-header {
-    visibility: hidden;
+/* Hide Streamlit Defaults */
+[data-testid="collapsedControl"], section[data-testid="stSidebar"], header {
+    display: none !important;
 }
 
-/* Neomorphic Cards */
-.metric-card {
-    background: linear-gradient(145deg, #111827, #1f2937);
-    border-radius: 12px;
-    padding: 20px;
-    box-shadow:  5px 5px 10px #07090f, -5px -5px 10px #151d2d;
-    border: 1px solid #374151;
-    margin-bottom: 20px;
-    transition: transform 0.2s ease-in-out;
+/* Elevated Data Cards */
+.metric-card, .intent-card {
+    background: linear-gradient(145deg, #111A3A, #0D152E);
+    border-radius: 16px;
+    padding: 24px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    border: 1px solid #1E293B;
+    transition: all 0.3s ease;
 }
 
-.metric-card:hover {
+.intent-card {
+    text-align: center;
+    cursor: pointer;
+}
+
+.intent-card:hover {
     transform: translateY(-5px);
+    border-color: #3b82f6;
+    box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
 }
 
 /* High-contrast Headers */
 h1, h2, h3 {
-    color: #60a5fa !important;
-    font-family: 'Inter', sans-serif;
+    color: #F8FAFC !important;
     font-weight: 700;
     letter-spacing: -0.5px;
 }
 
-/* Neon Accents for key metrics */
+/* Emerald Green Accents for Financial Growth */
 .neon-text {
-    color: #34d399;
-    text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
-    font-size: 1.5rem;
-    font-weight: bold;
+    color: #10B981;
+    font-size: 1.75rem;
+    font-weight: 700;
 }
 
-.alert-text {
-    color: #f87171;
-    font-size: 0.9rem;
-}
+.primary-blue { color: #3B82F6; }
+.alert-text { color: #EF4444; font-size: 0.95rem; }
+.success-text { color: #10B981; font-size: 0.95rem; }
 
-.success-text {
-    color: #34d399;
-    font-size: 0.9rem;
+/* Wizard Input Styling */
+.stNumberInput > div > div > input, .stSelectbox > div > div > div {
+    background-color: #111A3A !important;
+    color: white !important;
+    border: 1px solid #334155 !important;
+    border-radius: 8px !important;
 }
 
 /* Custom Button Styling */
 div.stButton > button:first-child {
-    background-color: #3b82f6;
+    background-color: #3B82F6;
     color: white;
     border: none;
     border-radius: 8px;
-    padding: 10px 24px;
-    font-weight: bold;
+    padding: 12px 28px;
+    font-weight: 600;
+    width: 100%;
     transition: all 0.3s ease;
 }
 
 div.stButton > button:first-child:hover {
-    background-color: #2563eb;
-    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+    background-color: #2563EB;
 }
