@@ -1,27 +1,87 @@
-/* assets/style.css - Institutional Fintech Theme */
+/* assets/style.css — Institutional Fintech Theme for FINPILOT */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
 
-/* Main Background & Text - Deep Indigo for Trust */
-.stApp {
-    background-color: #0A1128;
-    color: #F8FAFC;
+:root {
+    --bg-deep: #0A1128;
+    --bg-card: #111A3A;
+    --bg-card-2: #0D152E;
+    --border: #1E293B;
+    --text-main: #F8FAFC;
+    --text-muted: #94A3B8;
+    --blue: #3B82F6;
+    --blue-hover: #2563EB;
+    --green: #10B981;
+    --red: #EF4444;
+    --amber: #F59E0B;
+    --cyan: #38BDF8;
+}
+
+/* Main Background & Text — Deep Indigo for Trust */
+html, body, .stApp, [data-testid="stAppViewContainer"] {
+    background-color: var(--bg-deep);
+    color: var(--text-main);
     font-family: 'Inter', sans-serif;
 }
 
-/* Hide Streamlit Defaults */
-[data-testid="collapsedControl"], section[data-testid="stSidebar"], header {
+[data-testid="stHeader"] {
+    background: transparent;
+}
+
+/* Hide Streamlit chrome for a focused, app-like feel */
+[data-testid="collapsedControl"],
+section[data-testid="stSidebar"],
+footer,
+#MainMenu {
     display: none !important;
 }
 
-/* Elevated Data Cards */
+.block-container {
+    max-width: 780px;
+    padding-top: 2.5rem;
+    padding-bottom: 4rem;
+}
+
+/* ============ TYPOGRAPHY ============ */
+h1, h2, h3 {
+    color: var(--text-main) !important;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+}
+
+h1 { font-size: 2.1rem; }
+h2 { font-size: 1.5rem; }
+
+p, span, label, .stMarkdown { color: var(--text-main); }
+
+.primary-blue { color: var(--blue); }
+.alert-text { color: var(--red); font-size: 0.95rem; margin: 4px 0; }
+.success-text { color: var(--green); font-size: 0.95rem; margin: 4px 0; }
+.neon-text { color: var(--green); font-size: 1.75rem; font-weight: 800; }
+
+/* ============ PROGRESS BAR ============ */
+[data-testid="stProgress"] > div > div {
+    background-color: var(--bg-card) !important;
+}
+[data-testid="stProgress"] > div > div > div {
+    background: linear-gradient(90deg, var(--blue), var(--green)) !important;
+}
+
+/* ============ CARDS ============ */
 .metric-card, .intent-card {
-    background: linear-gradient(145deg, #111A3A, #0D152E);
+    background: linear-gradient(145deg, var(--bg-card), var(--bg-card-2));
     border-radius: 16px;
-    padding: 24px;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-    border: 1px solid #1E293B;
-    transition: all 0.3s ease;
+    padding: 22px 24px;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+    border: 1px solid var(--border);
+    transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+    margin-bottom: 12px;
+}
+
+.metric-card:hover {
+    transform: translateY(-3px);
+    border-color: #2b3a63;
+    box-shadow: 0 14px 32px rgba(59, 130, 246, 0.12);
 }
 
 .intent-card {
@@ -31,48 +91,179 @@
 
 .intent-card:hover {
     transform: translateY(-5px);
-    border-color: #3b82f6;
+    border-color: var(--blue);
     box-shadow: 0 10px 30px rgba(59, 130, 246, 0.2);
 }
 
-/* High-contrast Headers */
-h1, h2, h3 {
-    color: #F8FAFC !important;
-    font-weight: 700;
-    letter-spacing: -0.5px;
+/* ============ ACTION LIST ============ */
+.action-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 16px;
+    margin-bottom: 10px;
+    font-size: 0.92rem;
+    color: #E2E8F0;
 }
 
-/* Emerald Green Accents for Financial Growth */
-.neon-text {
-    color: #10B981;
-    font-size: 1.75rem;
+.action-num {
+    flex-shrink: 0;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    background: var(--blue);
+    color: white;
+    font-size: 0.75rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.primary-blue { color: #3B82F6; }
-.alert-text { color: #EF4444; font-size: 0.95rem; }
-.success-text { color: #10B981; font-size: 0.95rem; }
+/* ============ ALLOCATION ROWS (legend list) ============ */
+.alloc-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+    border-bottom: 1px solid var(--border);
+}
 
-/* Wizard Input Styling */
-.stNumberInput > div > div > input, .stSelectbox > div > div > div {
-    background-color: #111A3A !important;
-    color: white !important;
+.alloc-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.alloc-label {
+    flex: 1;
+    color: var(--text-muted);
+    font-size: 0.88rem;
+}
+
+.alloc-value {
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: var(--text-main);
+}
+
+/* ============ STATUS PILLS ============ */
+.pill {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    margin-top: 6px;
+}
+.pill-ok { background: rgba(16, 185, 129, 0.15); color: var(--green); border: 1px solid rgba(16,185,129,0.4); }
+.pill-review { background: rgba(245, 158, 11, 0.15); color: var(--amber); border: 1px solid rgba(245,158,11,0.4); }
+.pill-missing { background: rgba(239, 68, 68, 0.15); color: var(--red); border: 1px solid rgba(239,68,68,0.4); }
+.pill-na { background: rgba(148, 163, 184, 0.12); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* ============ ALERT BANNER ============ */
+.alert-banner {
+    background: rgba(239, 68, 68, 0.08);
+    border: 1px solid rgba(239, 68, 68, 0.35);
+    color: #FCA5A5;
+    border-radius: 12px;
+    padding: 14px 18px;
+    font-size: 0.92rem;
+    margin-bottom: 12px;
+}
+
+/* ============ INPUTS ============ */
+input, textarea,
+div[data-baseweb="input"] > div,
+div[data-baseweb="select"] > div,
+div[data-baseweb="base-input"] {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
     border: 1px solid #334155 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
 }
 
-/* Custom Button Styling */
-div.stButton > button:first-child {
-    background-color: #3B82F6;
+div[data-baseweb="input"] input,
+div[data-baseweb="select"] input {
+    color: var(--text-main) !important;
+}
+
+/* Checkbox label text */
+[data-testid="stCheckbox"] label p { color: var(--text-main) !important; }
+
+/* Slider track/thumb */
+div[data-baseweb="slider"] div[role="slider"] {
+    background-color: var(--blue) !important;
+}
+
+/* Select-slider ticks */
+[data-testid="stSelectSlider"] label p { color: var(--text-main) !important; }
+
+/* ============ BUTTONS ============ */
+.stButton > button {
+    background-color: var(--blue);
     color: white;
     border: none;
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 12px 28px;
-    font-weight: 600;
-    width: 100%;
-    transition: all 0.3s ease;
+    font-weight: 700;
+    transition: all 0.2s ease;
 }
 
-div.stButton > button:first-child:hover {
-    background-color: #2563EB;
+.stButton > button:hover {
+    background-color: var(--blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
 }
+
+.stButton > button:active {
+    transform: translateY(0);
+}
+
+/* ============ TABS ============ */
+[data-testid="stTabs"] [data-baseweb="tab-list"] {
+    gap: 4px;
+    border-bottom: 1px solid var(--border);
+}
+
+[data-testid="stTabs"] button[data-baseweb="tab"] {
+    background: transparent;
+    color: var(--text-muted);
+    font-weight: 600;
+    border-radius: 8px 8px 0 0;
+    padding: 10px 16px;
+}
+
+[data-testid="stTabs"] button[aria-selected="true"] {
+    color: var(--text-main) !important;
+    background: var(--bg-card);
+    border-bottom: 2px solid var(--blue);
+}
+
+/* ============ DATA EDITOR / DATAFRAME ============ */
+[data-testid="stDataFrame"], [data-testid="stDataEditor"] {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+/* ============ EXPANDER ============ */
+[data-testid="stExpander"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+/* ============ ALERTS ============ */
+[data-testid="stNotification"] {
+    border-radius: 12px;
+}
+
+/* ============ SCROLLBAR (subtle) ============ */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: var(--bg-deep); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
