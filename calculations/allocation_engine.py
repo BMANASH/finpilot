@@ -2,89 +2,74 @@
 
 def calculate_dynamic_waterfall(profile: dict) -> dict:
     """
-    Core Financial Engine: Processes cash flow through a strict priority waterfall.
-    It does not use fixed percentages. It calculates allocations based on actual 
-    liabilities, dependents, and safety gaps.
+    Calculates a personalized cash-flow waterfall based on the user's financial profile.
+    This replaces rigid rules like 50/30/20 with dynamic, needs-based allocation.
     """
     income = profile.get('income', 0)
-    if income <= 0:
-        return {"error": "Income must be greater than 0"}
-
-    # Base Metrics
-    essential_expenses = profile.get('essential_expenses', 0)
+    essential = profile.get('essential_expenses', 0)
     debt_emi = profile.get('debt_emi', 0)
-    dependents = profile.get('dependents', 0)
-    current_emergency = profile.get('emergency_fund_current', 0)
-    has_health_insurance = profile.get('has_health_insurance', False)
-
-    # Calculate Base Surplus
-    surplus = income - essential_expenses - debt_emi
-    if surplus <= 0:
-        return _generate_survival_mode_allocation(income, essential_expenses, debt_emi)
-
-    allocation_plan = {
-        "Essential Expenses": essential_expenses,
-        "Debt Obligations": debt_emi,
-        "Protection & Insurance": 0,
-        "Emergency Reserve": 0,
-        "Goal Funding": 0,
-        "Retirement": 0,
-        "Long-Term Wealth": 0,
-        "Flexible Lifestyle": 0
-    }
-
-    # PRIORITY 1: Protection (Health & Term Life)
-    # If no health insurance, allocate up to 5% of income to fund a premium
-    if not has_health_insurance:
-        health_premium_est = min(surplus, income * 0.05)
-        allocation_plan["Protection & Insurance"] += health_premium_est
-        surplus -= health_premium_est
     
-    # If dependents exist, allocate up to 3% for Term Life Insurance
-    if dependents > 0:
-        term_premium_est = min(surplus, income * 0.03)
-        allocation_plan["Protection & Insurance"] += term_premium_est
-        surplus -= term_premium_est
+    # Forced Input Validation: If income is 0 or less than essential + debt, flag an error
+    if income <= 0:
+        return {"Warning": "Income must be greater than zero to calculate allocation."}
+    if (essential + debt_emi) >= income:
+        return {"Warning": "Your committed expenses and debt exceed or equal your income. Immediate cash-flow restructuring required."}
 
-    # PRIORITY 2: Emergency Liquidity
-    # Target: 6 months of absolute essentials + debt
-    emergency_target = (essential_expenses + debt_emi) * 6
-    if current_emergency < emergency_target:
-        # Aggressively fund emergency if gap is large, max 20% of income
-        emergency_funding_capacity = min(surplus, income * 0.20)
-        allocation_plan["Emergency Reserve"] = emergency_funding_capacity
-        surplus -= emergency_funding_capacity
+    surplus = income - essential - debt_emi
+    
+    # Initialize allocation buckets (in currency amounts, not percentages yet)
+    allocation_amounts = {
+        'Essential Living': essential,
+        'Debt Repayment': debt_emi,
+        'Protection (Insurance)': 0,
+        'Emergency Fund': 0,
+        'Retirement': 0,
+        'Goal Funding & Wealth': 0,
+        'Flexible/Lifestyle': 0
+    }
 
-    # PRIORITY 3: Retirement Basics
-    # Ensure at least 10% goes to retirement if surplus allows
-    retirement_minimum = min(surplus, income * 0.10)
-    allocation_plan["Retirement"] = retirement_minimum
-    surplus -= retirement_minimum
+    # Step 1: Protection (Term & Health)
+    # If they have dependents or no health insurance, allocate a portion of surplus to protection
+    protection_needs = 0
+    if not profile.get('has_health_insurance', False):
+        protection_needs += (income * 0.05) # Estimate 5% for baseline health cover
+    if profile.get('dependents', 0) > 0:
+        protection_needs += (income * 0.03) # Estimate 3% for term life cover
+    
+    # Cap protection at 15% of surplus to avoid draining all cash flow
+    actual_protection = min(protection_needs, surplus * 0.15)
+    allocation_amounts['Protection (Insurance)'] = actual_protection
+    surplus -= actual_protection
 
-    # PRIORITY 4: Goal Funding & Long-Term Wealth
-    # Split remaining surplus between specific goals and general wealth building
+    # Step 2: Emergency Fund
+    # Target: 6 months of essential expenses
+    target_ef = essential * 6
+    current_ef = profile.get('emergency_fund_current', 0)
+    
+    if current_ef < target_ef:
+        # If underfunded, aggressively allocate up to 30% of remaining surplus
+        ef_allocation = min(target_ef - current_ef, surplus * 0.30)
+        allocation_amounts['Emergency Fund'] = ef_allocation
+        surplus -= ef_allocation
+
+    # Step 3: Retirement
+    # Baseline 10% of income if surplus allows, otherwise a smaller percentage
+    retirement_target = income * 0.10
+    actual_retirement = min(retirement_target, surplus * 0.40)
+    allocation_amounts['Retirement'] = actual_retirement
+    surplus -= actual_retirement
+
+    # Step 4: Wealth & Goals vs. Lifestyle
+    # Split the remaining surplus between long-term goals and flexible lifestyle spending
     if surplus > 0:
-        goal_allocation = surplus * 0.60
-        wealth_allocation = surplus * 0.30
-        lifestyle_allocation = surplus * 0.10
-        
-        allocation_plan["Goal Funding"] = goal_allocation
-        allocation_plan["Long-Term Wealth"] = wealth_allocation
-        allocation_plan["Flexible Lifestyle"] = lifestyle_allocation
+        allocation_amounts['Goal Funding & Wealth'] = surplus * 0.70
+        allocation_amounts['Flexible/Lifestyle'] = surplus * 0.30
 
-    # Convert absolute raw numbers to percentages for the UI
-    percentage_allocation = {
-        category: round((amount / income) * 100, 2) 
-        for category, amount in allocation_plan.items() 
-        if amount > 0
-    }
+    # Convert amounts to percentages for the dashboard UI
+    allocation_percentages = {}
+    for category, amount in allocation_amounts.items():
+        if amount > 0:
+            percentage = round((amount / income) * 100, 1)
+            allocation_percentages[category] = percentage
 
-    return percentage_allocation
-
-def _generate_survival_mode_allocation(income, expenses, debt):
-    """Fallback engine if expenses + debt exceed or equal income."""
-    return {
-        "Essential Expenses": round((expenses / income) * 100, 2),
-        "Debt Obligations": round((debt / income) * 100, 2),
-        "Warning": "Cash flow negative or zero. Debt restructuring or income generation required."
-    }
+    return allocation_percentages
