@@ -267,3 +267,100 @@ div[data-baseweb="slider"] div[role="slider"] {
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: var(--bg-deep); }
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 8px; }
+
+/* ============ MOTION ============ */
+@keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+[data-testid="element-container"] {
+    animation: fadeSlideIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes bgDrift {
+    0%   { background-position: 0% 50%; }
+    50%  { background-position: 100% 50%; }
+    100% { background-position: 0% 50%; }
+}
+
+.stApp {
+    background-image:
+        radial-gradient(circle at 15% 20%, rgba(59, 130, 246, 0.06), transparent 40%),
+        radial-gradient(circle at 85% 80%, rgba(16, 185, 129, 0.05), transparent 40%);
+    background-size: 200% 200%;
+    animation: bgDrift 18s ease infinite;
+}
+
+.step-tag {
+    text-align: center;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--blue);
+    margin-bottom: 2px;
+}
+
+/* ============ PILLS (multi-select chips) ============ */
+[data-testid="stPills"] {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+[data-testid="stPills"] button,
+[data-testid="stPillsButton"] {
+    background: var(--bg-card) !important;
+    border: 1px solid var(--border) !important;
+    color: var(--text-muted) !important;
+    border-radius: 999px !important;
+    transition: all 0.2s ease !important;
+}
+
+[data-testid="stPills"] button:hover,
+[data-testid="stPillsButton"]:hover {
+    border-color: var(--blue) !important;
+    color: var(--text-main) !important;
+    transform: translateY(-2px);
+}
+
+[data-testid="stPills"] button[aria-pressed="true"],
+[data-testid="stPillsButton"][aria-pressed="true"],
+[data-testid="stPills"] button[data-selected="true"] {
+    background: linear-gradient(135deg, var(--blue), #2563EB) !important;
+    border-color: var(--blue) !important;
+    color: white !important;
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
+}
+
+/* ============ TOGGLE SWITCH ============ */
+[data-testid="stToggle"] label div[data-baseweb="checkbox"] > div:first-child {
+    background-color: var(--bg-card) !important;
+    border-color: #334155 !important;
+}
+
+[data-testid="stToggle"] p { color: var(--text-main) !important; font-weight: 500; }
+
+/* ============ CHAT ============ */
+[data-testid="stChatMessage"] {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 4px 6px;
+    margin-bottom: 8px;
+}
+
+[data-testid="stChatInput"] textarea {
+    background-color: var(--bg-card) !important;
+    color: var(--text-main) !important;
+    border: 1px solid #334155 !important;
+    border-radius: 12px !important;
+}
+
+/* ============ DISABLED BUTTONS ============ */
+.stButton > button:disabled {
+    background-color: #1E293B;
+    color: #64748B;
+    cursor: not-allowed;
+}
