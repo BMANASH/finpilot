@@ -4,16 +4,27 @@ def calculate_dynamic_waterfall(profile: dict) -> dict:
     """
     Calculates a personalized cash-flow waterfall based on the user's financial profile.
     This replaces rigid rules like 50/30/20 with dynamic, needs-based allocation.
+
+    Returns a dict shaped as:
+    {
+        "warning": str | None,
+        "amounts": {category: rupee_amount, ...},
+        "percentages": {category: percent_of_income, ...},
+    }
     """
     income = profile.get('income', 0)
     essential = profile.get('essential_expenses', 0)
     debt_emi = profile.get('debt_emi', 0)
-    
+
+    empty = {"warning": None, "amounts": {}, "percentages": {}}
+
     # Forced Input Validation: If income is 0 or less than essential + debt, flag an error
     if income <= 0:
-        return {"Warning": "Income must be greater than zero to calculate allocation."}
+        empty["warning"] = "Income must be greater than zero to calculate allocation."
+        return empty
     if (essential + debt_emi) >= income:
-        return {"Warning": "Your committed expenses and debt exceed or equal your income. Immediate cash-flow restructuring required."}
+        empty["warning"] = "Your committed expenses and debt exceed or equal your income. Immediate cash-flow restructuring required."
+        return empty
 
     surplus = income - essential - debt_emi
     
@@ -72,4 +83,9 @@ def calculate_dynamic_waterfall(profile: dict) -> dict:
             percentage = round((amount / income) * 100, 1)
             allocation_percentages[category] = percentage
 
-    return allocation_percentages
+    return {
+        "warning": None,
+        "amounts": {k: round(v, 2) for k, v in allocation_amounts.items() if v > 0},
+        "percentages": allocation_percentages,
+        "goal_and_wealth_amount": round(allocation_amounts['Goal Funding & Wealth'], 2),
+    }
