@@ -2,12 +2,18 @@ import streamlit as st
 import pandas as pd
 import os
 
-# Safely import the AI library so the app doesn't crash if it's missing
+# Safely import the AI library
 try:
     import google.generativeai as genai
     AI_MODULE_READY = True
 except ModuleNotFoundError:
     AI_MODULE_READY = False
+
+# Import the core financial engines
+from calculations.allocation_engine import calculate_dynamic_waterfall
+from calculations.financial_health import calculate_health_score
+from calculations.retirement_engine import calculate_retirement_needs
+from calculations.risk_engine import assess_risk_capacity, determine_asset_allocation
 
 # ==========================================
 # 1. PAGE CONFIGURATION & THEME
@@ -46,6 +52,14 @@ st.markdown("""
         font-size: 1.5rem;
         font-weight: bold;
     }
+    .alert-text {
+        color: #f87171;
+        font-size: 0.9rem;
+    }
+    .success-text {
+        color: #34d399;
+        font-size: 0.9rem;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -60,46 +74,15 @@ if 'profile' not in st.session_state:
         'dependents': 0,
         'emergency_fund_current': 10000,
         'has_health_insurance': False,
-        'goals': []
+        'current_age': 25,
+        'retirement_age': 60,
+        'life_expectancy': 85,
+        'current_retirement_corpus': 0,
+        'risk_tolerance': 'Moderate'
     }
 
 # ==========================================
-# 3. DYNAMIC ALLOCATION ENGINE (CORE LOGIC)
-# ==========================================
-def calculate_waterfall(profile):
-    income = profile['income']
-    if income <= 0:
-        return {}
-
-    expenses = profile['essential_expenses']
-    debt = profile['debt_emi']
-    surplus = income - expenses - debt
-    
-    protection_allocation = 0
-    if not profile['has_health_insurance']:
-        protection_allocation = min(surplus, int(income * 0.05)) 
-        surplus -= protection_allocation
-
-    emergency_target = expenses * 6
-    emergency_allocation = 0
-    if profile['emergency_fund_current'] < emergency_target:
-        emergency_allocation = min(surplus, int(income * 0.15))
-        surplus -= emergency_allocation
-
-    investment_allocation = surplus * 0.70
-    lifestyle_allocation = surplus * 0.30
-
-    return {
-        "Essential Expenses": (expenses / income) * 100,
-        "Debt Obligations": (debt / income) * 100,
-        "Protection & Insurance": (protection_allocation / income) * 100,
-        "Emergency Reserve": (emergency_allocation / income) * 100,
-        "Wealth & Goals": (investment_allocation / income) * 100,
-        "Flexible Lifestyle": (lifestyle_allocation / income) * 100
-    }
-
-# ==========================================
-# 4. SIDEBAR NAVIGATION
+# 3. SIDEBAR NAVIGATION
 # ==========================================
 with st.sidebar:
     st.markdown("### 💠 FINPILOT ENGINE")
@@ -108,85 +91,143 @@ with st.sidebar:
     st.markdown("---")
     st.markdown("### API Status")
     
-    # Check both the module installation and the secret key
     if not AI_MODULE_READY:
-        st.error("Gemini Engine: WAITING FOR INSTALL (Check requirements.txt)")
+        st.error("Gemini Engine: WAITING FOR INSTALL")
     elif "API_KEY" in st.secrets:
         st.success("Gemini Engine: ONLINE")
         genai.configure(api_key=st.secrets["API_KEY"])
     else:
-        st.error("Gemini Engine: OFFLINE (Missing API Key)")
+        st.error("Gemini Engine: OFFLINE")
 
 # ==========================================
-# 5. PAGE ROUTING
+# 4. PAGE ROUTING & LOGIC
 # ==========================================
 if page == "Financial Profile":
     st.title("User Financial Profile")
-    st.markdown("Update your baseline metrics to recalculate the dynamic waterfall.")
+    st.markdown("Update your baseline metrics. The engines will dynamically recalculate your roadmap.")
     
-    col1, col2 = st.columns(2)
+    col1, col2, col3 = st.columns(3)
+    
     with col1:
+        st.subheader("Cash Flow & Debt")
         st.session_state.profile['income'] = st.number_input("Monthly Income (₹)", value=st.session_state.profile['income'], step=5000)
-        st.session_state.profile['essential_expenses'] = st.number_input("Essential Monthly Expenses (₹)", value=st.session_state.profile['essential_expenses'], step=1000)
+        st.session_state.profile['essential_expenses'] = st.number_input("Essential Expenses (₹)", value=st.session_state.profile['essential_expenses'], step=1000)
         st.session_state.profile['debt_emi'] = st.number_input("Monthly Debt/EMI (₹)", value=st.session_state.profile['debt_emi'], step=1000)
+        
     with col2:
+        st.subheader("Safety & Protection")
         st.session_state.profile['dependents'] = st.number_input("Number of Dependents", value=st.session_state.profile['dependents'], step=1, min_value=0)
         st.session_state.profile['emergency_fund_current'] = st.number_input("Current Emergency Savings (₹)", value=st.session_state.profile['emergency_fund_current'], step=10000)
         st.session_state.profile['has_health_insurance'] = st.checkbox("I have adequate Health Insurance", value=st.session_state.profile['has_health_insurance'])
 
+    with col3:
+        st.subheader("Retirement & Risk")
+        st.session_state.profile['current_age'] = st.number_input("Current Age", value=st.session_state.profile['current_age'], step=1)
+        st.session_state.profile['current_retirement_corpus'] = st.number_input("Current Retirement Savings (₹)", value=st.session_state.profile['current_retirement_corpus'], step=10000)
+        st.session_state.profile['risk_tolerance'] = st.selectbox("Psychological Risk Tolerance", ["Conservative", "Moderate", "Aggressive"], index=1)
+
 elif page == "Dashboard":
     st.title("Command Center")
-    st.markdown("Your dynamically calculated financial waterfall.")
     
-    allocations = calculate_waterfall(st.session_state.profile)
+    # Run core calculations
+    health = calculate_health_score(st.session_state.profile)
+    allocations = calculate_dynamic_waterfall(st.session_state.profile)
+    risk_capacity = assess_risk_capacity(st.session_state.profile)
     
+    # KPIs
     c1, c2, c3 = st.columns(3)
     with c1:
-        st.markdown(f"""
-        <div class="metric-card">
-            <p>Monthly Inflow</p>
-            <p class="neon-text">₹{st.session_state.profile['income']:,}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
         surplus = st.session_state.profile['income'] - st.session_state.profile['essential_expenses'] - st.session_state.profile['debt_emi']
         st.markdown(f"""
         <div class="metric-card">
-            <p>Available Surplus</p>
+            <p>Available Monthly Surplus</p>
             <p class="neon-text">₹{surplus:,}</p>
         </div>
         """, unsafe_allow_html=True)
-    with c3:
-        health_score = 85 if st.session_state.profile['has_health_insurance'] else 45
+    with c2:
         st.markdown(f"""
         <div class="metric-card">
-            <p>Foundation Score</p>
-            <p class="neon-text">{health_score} / 100</p>
+            <p>Financial Foundation Score</p>
+            <p class="neon-text">{health['score']} / {health['max_score']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    with c3:
+        st.markdown(f"""
+        <div class="metric-card">
+            <p>Objective Risk Capacity</p>
+            <p class="neon-text">{risk_capacity.upper()}</p>
         </div>
         """, unsafe_allow_html=True)
 
-    st.subheader("Where Every ₹100 Should Go (Dynamic Waterfall)")
+    st.markdown("---")
     
-    if allocations:
-        chart_data = pd.DataFrame([
-            {"Category": k, "Percentage": v} for k, v in allocations.items() if v > 0
-        ])
-        st.bar_chart(chart_data.set_index("Category"), height=400, color="#3b82f6")
-    else:
-        st.warning("Please update your profile to generate your allocation model.")
+    # Tabbed Interface for deep dives
+    tab1, tab2, tab3 = st.tabs(["Money Waterfall", "Foundation Status", "Retirement Engine"])
+    
+    with tab1:
+        st.subheader("Where Every ₹100 Should Go")
+        st.markdown("Calculated dynamically based on your liabilities and protection gaps, not fixed percentages.")
+        if "error" not in allocations and "Warning" not in allocations:
+            chart_data = pd.DataFrame([{"Category": k, "Percentage": v} for k, v in allocations.items() if v > 0])
+            st.bar_chart(chart_data.set_index("Category"), height=350, color="#3b82f6")
+        else:
+            st.warning(allocations.get("Warning", "Invalid Income to calculate waterfall."))
+
+    with tab2:
+        st.subheader("Foundation Diagnostics")
+        colA, colB = st.columns(2)
+        with colA:
+            st.markdown("#### ✅ Strengths")
+            for strength in health['strong_points']:
+                st.markdown(f"<span class='success-text'>• {strength}</span>", unsafe_allow_html=True)
+        with colB:
+            st.markdown("#### ⚠️ Immediate Priorities")
+            for gap in health['attention_needed']:
+                st.markdown(f"<span class='alert-text'>• {gap}</span>", unsafe_allow_html=True)
+
+    with tab3:
+        st.subheader("Retirement Trajectory")
+        ret = calculate_retirement_needs(
+            current_age=st.session_state.profile['current_age'],
+            retirement_age=st.session_state.profile['retirement_age'],
+            life_expectancy=st.session_state.profile['life_expectancy'],
+            current_monthly_expenses=st.session_state.profile['essential_expenses'],
+            current_retirement_corpus=st.session_state.profile['current_retirement_corpus']
+        )
+        if "error" not in ret:
+            r1, r2, r3 = st.columns(3)
+            r1.metric("Required Corpus (Inflation Adj)", f"₹{ret['required_corpus']:,.0f}")
+            r2.metric("Projected Corpus Shortfall", f"₹{ret['corpus_shortfall']:,.0f}")
+            r3.metric("Required Monthly SIP", f"₹{ret['required_monthly_investment']:,.0f}")
+            st.caption("Assumes 6% inflation, 12% pre-retirement return, and 8% post-retirement return.")
 
 elif page == "AI Advisor":
     st.title("Gemini Strategic Advisor")
-    st.markdown("AI insights based strictly on your deterministic profile outputs.")
+    st.markdown("AI insights based strictly on your deterministic engine outputs.")
     
     if st.button("Generate Strategy Brief"):
         if AI_MODULE_READY and "API_KEY" in st.secrets:
             try:
+                health = calculate_health_score(st.session_state.profile)
+                capacity = assess_risk_capacity(st.session_state.profile)
+                
                 model = genai.GenerativeModel('gemini-1.5-pro')
-                prompt = f"Act as a strict, professional financial advisor. Analyze this user data: {st.session_state.profile}. Explain their most critical financial vulnerability right now in exactly 3 short sentences. Do not invent numbers."
+                prompt = f"""
+                Act as a strict, professional financial advisor.
+                User's Financial Health Score: {health['score']}/100.
+                Gaps identified: {health['attention_needed']}.
+                Objective Risk Capacity: {capacity}.
+                Psychological Risk Tolerance: {st.session_state.profile['risk_tolerance']}.
+                
+                Write a 3-paragraph executive summary to the user explaining:
+                1. Their most critical vulnerability based on the gaps.
+                2. Why their objective risk capacity dictates their investment strategy regardless of their psychological tolerance.
+                3. The immediate next action they must take.
+                Do not invent numbers. Be direct and professional.
+                """
                 response = model.generate_content(prompt)
                 st.success(response.text)
             except Exception as e:
                 st.error(f"Error connecting to Gemini: {e}")
         else:
-            st.error("Cannot generate strategy. Check API Key and Module Status in the sidebar.")
+            st.error("Cannot generate strategy. Check API Key and Module Status.")
