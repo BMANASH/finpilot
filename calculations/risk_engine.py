@@ -2,113 +2,106 @@
 
 def assess_risk_capacity(profile: dict) -> str:
     """
-    Evaluates objective financial capacity to absorb losses.
-    Based on emergency reserves, debt load, dependents, and surplus stability.
-    Returns: 'Low', 'Moderate', or 'High'
+    Determines objective risk capacity (financial ability to take risk),
+    evaluating time horizon, liquidity, cash flow, and fixed obligations.
     """
     income = profile.get('income', 0)
-    expenses = profile.get('essential_expenses', 0)
-    debt = profile.get('debt_emi', 0)
+    essential = profile.get('essential_expenses', 0)
+    debt_emi = profile.get('debt_emi', 0)
+    current_ef = profile.get('emergency_fund_current', 0)
     dependents = profile.get('dependents', 0)
-    emergency = profile.get('emergency_fund_current', 0)
-    
-    capacity_score = 0
-    
-    # 1. Emergency reserve runway
-    monthly_burn = expenses + debt
-    if monthly_burn > 0:
-        runway_months = emergency / monthly_burn
-        if runway_months >= 6:
-            capacity_score += 3
-        elif runway_months >= 3:
-            capacity_score += 2
-        else:
-            capacity_score += 1
-            
-    # 2. Dependency burden
-    if dependents == 0:
-        capacity_score += 3
-    elif dependents <= 2:
-        capacity_score += 2
-    else:
-        capacity_score += 1
+    age = profile.get('current_age', 25)
 
-    # 3. Debt-to-income ratio
-    if income > 0:
-        dti = debt / income
-        if dti == 0:
-            capacity_score += 3
-        elif dti <= 0.30:
-            capacity_score += 2
-        else:
-            capacity_score += 1
+    if income <= 0:
+        return "Low"
 
-    if capacity_score >= 8:
+    surplus = income - essential - debt_emi
+    surplus_ratio = surplus / income
+    months_ef = current_ef / essential if essential > 0 else 0
+    dti = debt_emi / income
+
+    score = 0
+    
+    # 1. Time Horizon (Age proxy for general wealth capacity)
+    if age < 35: score += 3
+    elif age < 50: score += 2
+    else: score += 1
+
+    # 2. Liquidity Buffer (Emergency Fund)
+    if months_ef >= 6: score += 3
+    elif months_ef >= 3: score += 2
+    else: score += 0
+
+    # 3. Cash Flow (Surplus generation)
+    if surplus_ratio >= 0.30: score += 3
+    elif surplus_ratio >= 0.15: score += 2
+    else: score += 1
+
+    # 4. Fixed Obligations (Dependents & Debt)
+    if dependents == 0 and dti < 0.20: score += 3
+    elif dependents <= 2 and dti < 0.40: score += 2
+    else: score += 1
+
+    # Classify Capacity
+    if score >= 10:
         return "High"
-    elif capacity_score >= 5:
+    elif score >= 7:
         return "Moderate"
     else:
         return "Low"
 
-def determine_asset_allocation(risk_capacity: str, risk_tolerance: str, goal_years: float) -> dict:
-    """
-    Determines asset allocation across Equity, Debt, and Gold.
-    Enforces the rule: Practical allocation is bounded by Risk Capacity,
-    not solely by psychological Risk Tolerance, and respects goal horizon.
-    """
-    # 1. Horizon overrides: Short-term money cannot take high volatility
-    if goal_years <= 3:
-        return {
-            "Equity": 0.0,
-            "Debt / Liquid": 90.0,
-            "Gold": 10.0,
-            "Strategy": "Capital Preservation (Near-term horizon)"
-        }
-    elif goal_years <= 7:
-        return {
-            "Equity": 40.0,
-            "Debt / Fixed Income": 50.0,
-            "Gold": 10.0,
-            "Strategy": "Balanced Hybrid (Medium-term horizon)"
-        }
 
-    # 2. Long-term horizon (7+ years): Bound tolerance by capacity
-    # If tolerance is high but capacity is low, cap equity exposure
+def determine_asset_allocation(risk_capacity: str, risk_tolerance: str, time_horizon: int = 10) -> dict:
+    """
+    Determines asset allocation by bounding psychological tolerance 
+    with objective risk capacity and time horizon.
+    """
+    # Absolute Rule: Short horizons demand liquidity regardless of capacity/tolerance
+    if time_horizon <= 3:
+        return {
+            "Strategy": "Capital Preservation (Short Term Goal)",
+            "Equity": 0,
+            "Debt": 60,
+            "Liquid/Cash": 40,
+            "Gold": 0
+        }
+    
+    # Capacity vs Tolerance Matrix
+    # The math bounds the psychology. You cannot be aggressive if you have low financial capacity.
+    final_profile = "Moderate"
+    
     if risk_capacity == "Low":
-        return {
-            "Equity": 30.0,
-            "Debt / Fixed Income": 60.0,
-            "Gold": 10.0,
-            "Strategy": "Conservative Growth (Constrained by low capacity)"
-        }
+        final_profile = "Conservative" # Overrides aggressive tolerance
     elif risk_capacity == "Moderate":
-        if risk_tolerance.lower() == "aggressive":
-            equity = 60.0
-        elif risk_tolerance.lower() == "conservative":
-            equity = 40.0
+        if risk_tolerance == "Conservative":
+            final_profile = "Conservative"
         else:
-            equity = 50.0
-            
-        return {
-            "Equity": equity,
-            "Debt / Fixed Income": round(90.0 - equity, 2),
-            "Gold": 10.0,
-            "Strategy": "Balanced Growth"
-        }
-    else:  # High Capacity
-        if risk_tolerance.lower() == "aggressive":
-            equity = 75.0
-            gold = 10.0
-        elif risk_tolerance.lower() == "conservative":
-            equity = 45.0
-            gold = 10.0
-        else:
-            equity = 60.0
-            gold = 15.0
+            final_profile = "Moderate" # Overrides aggressive tolerance
+    elif risk_capacity == "High":
+        final_profile = risk_tolerance # Capacity is high enough to allow any psychological preference
 
+    # Generate Allocation Percentages
+    if final_profile == "Conservative":
         return {
-            "Equity": equity,
-            "Debt / Fixed Income": round(100.0 - equity - gold, 2),
-            "Gold": gold,
-            "Strategy": "Aggressive Long-Term Compounding"
+            "Strategy": "Income & Capital Protection",
+            "Equity": 20,
+            "Debt": 60,
+            "Liquid/Cash": 10,
+            "Gold": 10
+        }
+    elif final_profile == "Moderate":
+        return {
+            "Strategy": "Balanced Growth",
+            "Equity": 50,
+            "Debt": 35,
+            "Liquid/Cash": 5,
+            "Gold": 10
+        }
+    else: # Aggressive
+        return {
+            "Strategy": "Aggressive Wealth Creation",
+            "Equity": 75,
+            "Debt": 15,
+            "Liquid/Cash": 5,
+            "Gold": 5
         }
