@@ -16,7 +16,7 @@ from calculations.retirement_engine import calculate_retirement_needs
 from calculations.risk_engine import assess_risk_capacity, determine_asset_allocation
 
 # ==========================================
-# 1. PAGE CONFIGURATION & THEME
+# 1. PAGE CONFIGURATION
 # ==========================================
 st.set_page_config(
     page_title="FINPILOT | Wealth Engine",
@@ -25,54 +25,28 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Futuristic UI CSS Injection
-st.markdown("""
-    <style>
-    .stApp {
-        background-color: #0b0f19;
-        color: #e2e8f0;
-    }
-    .metric-card {
-        background: linear-gradient(145deg, #111827, #1f2937);
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow:  5px 5px 10px #07090f, -5px -5px 10px #151d2d;
-        border: 1px solid #374151;
-        margin-bottom: 20px;
-    }
-    h1, h2, h3 {
-        color: #60a5fa !important;
-        font-family: 'Inter', sans-serif;
-        font-weight: 700;
-        letter-spacing: -0.5px;
-    }
-    .neon-text {
-        color: #34d399;
-        text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
-        font-size: 1.5rem;
-        font-weight: bold;
-    }
-    .alert-text {
-        color: #f87171;
-        font-size: 0.9rem;
-    }
-    .success-text {
-        color: #34d399;
-        font-size: 0.9rem;
-    }
-    </style>
-""", unsafe_allow_html=True)
+# Load Custom CSS dynamically
+try:
+    with open("assets/style.css") as f:
+        st.markdown(f"<style>{f.read()}</style>", unsafe_allow_html=True)
+except FileNotFoundError:
+    st.warning("assets/style.css not found. The app will use default Streamlit styling.")
 
 # ==========================================
-# 2. STATE MANAGEMENT (CENTRAL DATA MODEL)
+# 2. STATE MANAGEMENT 
 # ==========================================
+# Tracks whether the user is on the landing page or the main dashboard
+if 'app_state' not in st.session_state:
+    st.session_state.app_state = 'landing'
+
+# Initializes the central data model with zeros to prevent hard-coding
 if 'profile' not in st.session_state:
     st.session_state.profile = {
-        'income': 50000,
-        'essential_expenses': 20000,
+        'income': 0,
+        'essential_expenses': 0,
         'debt_emi': 0,
         'dependents': 0,
-        'emergency_fund_current': 10000,
+        'emergency_fund_current': 0,
         'has_health_insurance': False,
         'current_age': 25,
         'retirement_age': 60,
@@ -82,152 +56,175 @@ if 'profile' not in st.session_state:
     }
 
 # ==========================================
-# 3. SIDEBAR NAVIGATION
+# 3. ROUTING: LANDING PAGE
 # ==========================================
-with st.sidebar:
-    st.markdown("### 💠 FINPILOT ENGINE")
-    page = st.radio("System Modules", ["Dashboard", "Financial Profile", "AI Advisor"])
+if st.session_state.app_state == 'landing':
+    # CSS injection to force hide the sidebar and top header specifically for the landing page
+    st.markdown("""
+        <style>
+            [data-testid="collapsedControl"] { display: none; }
+            section[data-testid="stSidebar"] { display: none; }
+            header { visibility: hidden; }
+        </style>
+    """, unsafe_allow_html=True)
     
-    st.markdown("---")
-    st.markdown("### API Status")
+    st.markdown("<br><br><br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 2, 1])
     
-    if not AI_MODULE_READY:
-        st.error("Gemini Engine: WAITING FOR INSTALL")
-    elif "API_KEY" in st.secrets:
-        st.success("Gemini Engine: ONLINE")
-        genai.configure(api_key=st.secrets["API_KEY"])
-    else:
-        st.error("Gemini Engine: OFFLINE")
+    with col2:
+        st.markdown("<h1 style='text-align: center; font-size: 4rem; color: #60a5fa;'>💠 FINPILOT</h1>", unsafe_allow_html=True)
+        st.markdown("<h3 style='text-align: center; color: #94a3b8;'>Your Dynamic Financial Planning Engine</h3>", unsafe_allow_html=True)
+        st.markdown("<p style='text-align: center; color: #64748b;'>Stop relying on generic rules. Build a personalized financial waterfall based on objective risk capacity, dependency gaps, and real cash flow.</p>", unsafe_allow_html=True)
+        st.markdown("<br>", unsafe_allow_html=True)
+        
+        # Centered Call-to-Action button
+        c1, c2, c3 = st.columns([1, 1, 1])
+        with c2:
+            if st.button("Configure My Financial Engine", use_container_width=True):
+                st.session_state.app_state = 'dashboard'
+                st.rerun()
 
 # ==========================================
-# 4. PAGE ROUTING & LOGIC
+# 4. ROUTING: MAIN DASHBOARD & SIDEBAR
 # ==========================================
-if page == "Financial Profile":
-    st.title("User Financial Profile")
-    st.markdown("Update your baseline metrics. The engines will dynamically recalculate your roadmap.")
+elif st.session_state.app_state == 'dashboard':
     
-    col1, col2, col3 = st.columns(3)
-    
-    with col1:
-        st.subheader("Cash Flow & Debt")
+    # --- SIDEBAR (DATA INPUTS) ---
+    with st.sidebar:
+        st.markdown("### 💠 FINPILOT")
+        st.markdown("---")
+        
+        st.markdown("**1. Cash Flow & Debt**")
         st.session_state.profile['income'] = st.number_input("Monthly Income (₹)", value=st.session_state.profile['income'], step=5000)
         st.session_state.profile['essential_expenses'] = st.number_input("Essential Expenses (₹)", value=st.session_state.profile['essential_expenses'], step=1000)
         st.session_state.profile['debt_emi'] = st.number_input("Monthly Debt/EMI (₹)", value=st.session_state.profile['debt_emi'], step=1000)
         
-    with col2:
-        st.subheader("Safety & Protection")
-        st.session_state.profile['dependents'] = st.number_input("Number of Dependents", value=st.session_state.profile['dependents'], step=1, min_value=0)
+        st.markdown("**2. Safety & Protection**")
+        st.session_state.profile['dependents'] = st.number_input("Dependents", value=st.session_state.profile['dependents'], step=1, min_value=0)
         st.session_state.profile['emergency_fund_current'] = st.number_input("Current Emergency Savings (₹)", value=st.session_state.profile['emergency_fund_current'], step=10000)
-        st.session_state.profile['has_health_insurance'] = st.checkbox("I have adequate Health Insurance", value=st.session_state.profile['has_health_insurance'])
+        st.session_state.profile['has_health_insurance'] = st.checkbox("I have Health Insurance", value=st.session_state.profile['has_health_insurance'])
 
-    with col3:
-        st.subheader("Retirement & Risk")
+        st.markdown("**3. Investment Profile**")
         st.session_state.profile['current_age'] = st.number_input("Current Age", value=st.session_state.profile['current_age'], step=1)
-        st.session_state.profile['current_retirement_corpus'] = st.number_input("Current Retirement Savings (₹)", value=st.session_state.profile['current_retirement_corpus'], step=10000)
-        st.session_state.profile['risk_tolerance'] = st.selectbox("Psychological Risk Tolerance", ["Conservative", "Moderate", "Aggressive"], index=1)
+        st.session_state.profile['risk_tolerance'] = st.selectbox("Risk Tolerance", ["Conservative", "Moderate", "Aggressive"], index=1)
+        
+        st.markdown("---")
+        # System checks
+        if not AI_MODULE_READY:
+            st.error("AI: OFFLINE")
+        elif "API_KEY" in st.secrets:
+            st.success("AI: ONLINE")
+            genai.configure(api_key=st.secrets["API_KEY"])
+        else:
+            st.error("AI: KEY MISSING")
 
-elif page == "Dashboard":
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("← Return to Home", use_container_width=True):
+            st.session_state.app_state = 'landing'
+            st.rerun()
+
+    # --- MAIN DASHBOARD (OUTPUTS) ---
     st.title("Command Center")
     
-    # Run core calculations
-    health = calculate_health_score(st.session_state.profile)
-    allocations = calculate_dynamic_waterfall(st.session_state.profile)
-    risk_capacity = assess_risk_capacity(st.session_state.profile)
+    # If income is 0, the user hasn't started entering data yet. Prevent division by zero.
+    if st.session_state.profile['income'] == 0:
+        st.info("👈 Please enter your Monthly Income in the sidebar to initialize the calculation engines.")
     
-    # KPIs
-    c1, c2, c3 = st.columns(3)
-    with c1:
-        surplus = st.session_state.profile['income'] - st.session_state.profile['essential_expenses'] - st.session_state.profile['debt_emi']
-        st.markdown(f"""
-        <div class="metric-card">
-            <p>Available Monthly Surplus</p>
-            <p class="neon-text">₹{surplus:,}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with c2:
-        st.markdown(f"""
-        <div class="metric-card">
-            <p>Financial Foundation Score</p>
-            <p class="neon-text">{health['score']} / {health['max_score']}</p>
-        </div>
-        """, unsafe_allow_html=True)
-    with c3:
-        st.markdown(f"""
-        <div class="metric-card">
-            <p>Objective Risk Capacity</p>
-            <p class="neon-text">{risk_capacity.upper()}</p>
-        </div>
-        """, unsafe_allow_html=True)
+    else:
+        # Run core calculations
+        health = calculate_health_score(st.session_state.profile)
+        allocations = calculate_dynamic_waterfall(st.session_state.profile)
+        risk_capacity = assess_risk_capacity(st.session_state.profile)
+        
+        # Calculate Asset Strategy assuming a default long-term horizon (10 years) for general wealth
+        asset_allocation = determine_asset_allocation(risk_capacity, st.session_state.profile['risk_tolerance'], 10)
+        
+        # Top KPI Cards
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            surplus = st.session_state.profile['income'] - st.session_state.profile['essential_expenses'] - st.session_state.profile['debt_emi']
+            st.markdown(f"""
+            <div class="metric-card">
+                <p>Available Monthly Surplus</p>
+                <p class="neon-text">₹{surplus:,}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with c2:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p>Foundation Score</p>
+                <p class="neon-text">{health['score']} / {health['max_score']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+        with c3:
+            st.markdown(f"""
+            <div class="metric-card">
+                <p>Objective Risk Capacity</p>
+                <p class="neon-text">{risk_capacity.upper()}</p>
+            </div>
+            """, unsafe_allow_html=True)
 
-    st.markdown("---")
-    
-    # Tabbed Interface for deep dives
-    tab1, tab2, tab3 = st.tabs(["Money Waterfall", "Foundation Status", "Retirement Engine"])
-    
-    with tab1:
-        st.subheader("Where Every ₹100 Should Go")
-        st.markdown("Calculated dynamically based on your liabilities and protection gaps, not fixed percentages.")
-        if "error" not in allocations and "Warning" not in allocations:
-            chart_data = pd.DataFrame([{"Category": k, "Percentage": v} for k, v in allocations.items() if v > 0])
-            st.bar_chart(chart_data.set_index("Category"), height=350, color="#3b82f6")
-        else:
-            st.warning(allocations.get("Warning", "Invalid Income to calculate waterfall."))
+        st.markdown("---")
+        
+        # Deep Dive Modules
+        tab1, tab2, tab3, tab4 = st.tabs(["Money Waterfall", "Foundation Status", "Asset Strategy", "AI Strategic Brief"])
+        
+        with tab1:
+            st.subheader("Where Every ₹100 Should Go")
+            st.markdown("Calculated dynamically based on your liabilities and protection gaps.")
+            if "error" not in allocations and "Warning" not in allocations:
+                chart_data = pd.DataFrame([{"Category": k, "Percentage": v} for k, v in allocations.items() if v > 0])
+                st.bar_chart(chart_data.set_index("Category"), height=350, color="#3b82f6")
+            else:
+                st.warning(allocations.get("Warning", "Invalid Income to calculate waterfall."))
 
-    with tab2:
-        st.subheader("Foundation Diagnostics")
-        colA, colB = st.columns(2)
-        with colA:
-            st.markdown("#### ✅ Strengths")
-            for strength in health['strong_points']:
-                st.markdown(f"<span class='success-text'>• {strength}</span>", unsafe_allow_html=True)
-        with colB:
-            st.markdown("#### ⚠️ Immediate Priorities")
-            for gap in health['attention_needed']:
-                st.markdown(f"<span class='alert-text'>• {gap}</span>", unsafe_allow_html=True)
+        with tab2:
+            st.subheader("Foundation Diagnostics")
+            colA, colB = st.columns(2)
+            with colA:
+                st.markdown("#### ✅ Strengths")
+                for strength in health['strong_points']:
+                    st.markdown(f"<span class='success-text'>• {strength}</span>", unsafe_allow_html=True)
+            with colB:
+                st.markdown("#### ⚠️ Immediate Priorities")
+                for gap in health['attention_needed']:
+                    st.markdown(f"<span class='alert-text'>• {gap}</span>", unsafe_allow_html=True)
 
-    with tab3:
-        st.subheader("Retirement Trajectory")
-        ret = calculate_retirement_needs(
-            current_age=st.session_state.profile['current_age'],
-            retirement_age=st.session_state.profile['retirement_age'],
-            life_expectancy=st.session_state.profile['life_expectancy'],
-            current_monthly_expenses=st.session_state.profile['essential_expenses'],
-            current_retirement_corpus=st.session_state.profile['current_retirement_corpus']
-        )
-        if "error" not in ret:
-            r1, r2, r3 = st.columns(3)
-            r1.metric("Required Corpus (Inflation Adj)", f"₹{ret['required_corpus']:,.0f}")
-            r2.metric("Projected Corpus Shortfall", f"₹{ret['corpus_shortfall']:,.0f}")
-            r3.metric("Required Monthly SIP", f"₹{ret['required_monthly_investment']:,.0f}")
-            st.caption("Assumes 6% inflation, 12% pre-retirement return, and 8% post-retirement return.")
-
-elif page == "AI Advisor":
-    st.title("Gemini Strategic Advisor")
-    st.markdown("AI insights based strictly on your deterministic engine outputs.")
-    
-    if st.button("Generate Strategy Brief"):
-        if AI_MODULE_READY and "API_KEY" in st.secrets:
-            try:
-                health = calculate_health_score(st.session_state.profile)
-                capacity = assess_risk_capacity(st.session_state.profile)
-                
-                model = genai.GenerativeModel('gemini-1.5-pro')
-                prompt = f"""
-                Act as a strict, professional financial advisor.
-                User's Financial Health Score: {health['score']}/100.
-                Gaps identified: {health['attention_needed']}.
-                Objective Risk Capacity: {capacity}.
-                Psychological Risk Tolerance: {st.session_state.profile['risk_tolerance']}.
-                
-                Write a 3-paragraph executive summary to the user explaining:
-                1. Their most critical vulnerability based on the gaps.
-                2. Why their objective risk capacity dictates their investment strategy regardless of their psychological tolerance.
-                3. The immediate next action they must take.
-                Do not invent numbers. Be direct and professional.
-                """
-                response = model.generate_content(prompt)
-                st.success(response.text)
-            except Exception as e:
-                st.error(f"Error connecting to Gemini: {e}")
-        else:
-            st.error("Cannot generate strategy. Check API Key and Module Status.")
+        with tab3:
+            st.subheader("Recommended Asset Allocation")
+            st.markdown(f"**Strategy:** {asset_allocation['Strategy']}")
+            st.markdown("This allocation bounds your psychological risk tolerance to your objective financial capacity.")
+            
+            # Clean dictionary for the chart
+            asset_data = {k: v for k, v in asset_allocation.items() if k != 'Strategy'}
+            pie_data = pd.DataFrame([{"Asset": k, "Allocation (%)": v} for k, v in asset_data.items() if v > 0])
+            st.bar_chart(pie_data.set_index("Asset"), height=300, color="#34d399")
+            
+        with tab4:
+            st.subheader("Gemini Intelligence")
+            st.markdown("AI insights based strictly on your deterministic engine outputs.")
+            
+            if st.button("Generate Strategy Brief", type="primary"):
+                if AI_MODULE_READY and "API_KEY" in st.secrets:
+                    try:
+                        with st.spinner("Analyzing financial engines..."):
+                            model = genai.GenerativeModel('gemini-1.5-pro')
+                            prompt = f'''
+                            Act as a strict, professional financial advisor.
+                            User's Financial Health Score: {health['score']}/100.
+                            Gaps identified: {health['attention_needed']}.
+                            Objective Risk Capacity: {risk_capacity}.
+                            Psychological Risk Tolerance: {st.session_state.profile['risk_tolerance']}.
+                            
+                            Write a 3-paragraph executive summary explaining:
+                            1. Their most critical vulnerability based on the gaps.
+                            2. Why their objective risk capacity dictates their investment strategy regardless of their psychological tolerance.
+                            3. The immediate next action they must take.
+                            Do not invent numbers. Be direct and professional.
+                            '''
+                            response = model.generate_content(prompt)
+                            st.info(response.text)
+                    except Exception as e:
+                        st.error(f"Error connecting to Gemini: {e}")
+                else:
+                    st.error("Cannot generate strategy. Check API Key and Module Status in the sidebar.")
