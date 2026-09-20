@@ -1,0 +1,72 @@
+/* assets/style.css */
+
+/* Main Background & Text */
+.stApp {
+    background-color: #0b0f19;
+    color: #e2e8f0;
+}
+
+/* Hide the sidebar and top header by default for the landing page */
+[data-testid="collapsedControl"] {
+    display: none;
+}
+header {
+    visibility: hidden;
+}
+
+/* Neomorphic Cards */
+.metric-card {
+    background: linear-gradient(145deg, #111827, #1f2937);
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow:  5px 5px 10px #07090f, -5px -5px 10px #151d2d;
+    border: 1px solid #374151;
+    margin-bottom: 20px;
+    transition: transform 0.2s ease-in-out;
+}
+
+.metric-card:hover {
+    transform: translateY(-5px);
+}
+
+/* High-contrast Headers */
+h1, h2, h3 {
+    color: #60a5fa !important;
+    font-family: 'Inter', sans-serif;
+    font-weight: 700;
+    letter-spacing: -0.5px;
+}
+
+/* Neon Accents for key metrics */
+.neon-text {
+    color: #34d399;
+    text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
+    font-size: 1.5rem;
+    font-weight: bold;
+}
+
+.alert-text {
+    color: #f87171;
+    font-size: 0.9rem;
+}
+
+.success-text {
+    color: #34d399;
+    font-size: 0.9rem;
+}
+
+/* Custom Button Styling */
+div.stButton > button:first-child {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    padding: 10px 24px;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+div.stButton > button:first-child:hover {
+    background-color: #2563eb;
+    box-shadow: 0 0 15px rgba(59, 130, 246, 0.5);
+}
