@@ -1,7 +1,13 @@
 import streamlit as st
 import pandas as pd
 import os
-import google.generativeai as genai
+
+# Safely import the AI library so the app doesn't crash if it's missing
+try:
+    import google.generativeai as genai
+    AI_MODULE_READY = True
+except ModuleNotFoundError:
+    AI_MODULE_READY = False
 
 # ==========================================
 # 1. PAGE CONFIGURATION & THEME
@@ -16,13 +22,10 @@ st.set_page_config(
 # Futuristic UI CSS Injection
 st.markdown("""
     <style>
-    /* Main Background & Text */
     .stApp {
         background-color: #0b0f19;
         color: #e2e8f0;
     }
-    
-    /* Neomorphic Cards */
     .metric-card {
         background: linear-gradient(145deg, #111827, #1f2937);
         border-radius: 12px;
@@ -31,16 +34,12 @@ st.markdown("""
         border: 1px solid #374151;
         margin-bottom: 20px;
     }
-    
-    /* High-contrast Headers */
     h1, h2, h3 {
         color: #60a5fa !important;
         font-family: 'Inter', sans-serif;
         font-weight: 700;
         letter-spacing: -0.5px;
     }
-    
-    /* Neon Accents for key metrics */
     .neon-text {
         color: #34d399;
         text-shadow: 0 0 10px rgba(52, 211, 153, 0.5);
@@ -69,29 +68,24 @@ if 'profile' not in st.session_state:
 # ==========================================
 def calculate_waterfall(profile):
     income = profile['income']
-    if income == 0:
+    if income <= 0:
         return {}
 
     expenses = profile['essential_expenses']
     debt = profile['debt_emi']
-    
-    # Calculate Base Surplus
     surplus = income - expenses - debt
     
-    # Priority 1: Financial Protection (Health/Term)
     protection_allocation = 0
     if not profile['has_health_insurance']:
         protection_allocation = min(surplus, int(income * 0.05)) 
         surplus -= protection_allocation
 
-    # Priority 2: Emergency Fund (Target: 6 months of essentials)
     emergency_target = expenses * 6
     emergency_allocation = 0
     if profile['emergency_fund_current'] < emergency_target:
         emergency_allocation = min(surplus, int(income * 0.15))
         surplus -= emergency_allocation
 
-    # Priority 3: Goals & Long-Term Investments
     investment_allocation = surplus * 0.70
     lifestyle_allocation = surplus * 0.30
 
@@ -113,11 +107,15 @@ with st.sidebar:
     
     st.markdown("---")
     st.markdown("### API Status")
-    if "API_KEY" in st.secrets:
+    
+    # Check both the module installation and the secret key
+    if not AI_MODULE_READY:
+        st.error("Gemini Engine: WAITING FOR INSTALL (Check requirements.txt)")
+    elif "API_KEY" in st.secrets:
         st.success("Gemini Engine: ONLINE")
         genai.configure(api_key=st.secrets["API_KEY"])
     else:
-        st.error("Gemini Engine: OFFLINE")
+        st.error("Gemini Engine: OFFLINE (Missing API Key)")
 
 # ==========================================
 # 5. PAGE ROUTING
@@ -142,7 +140,6 @@ elif page == "Dashboard":
     
     allocations = calculate_waterfall(st.session_state.profile)
     
-    # KPIs
     c1, c2, c3 = st.columns(3)
     with c1:
         st.markdown(f"""
@@ -168,15 +165,12 @@ elif page == "Dashboard":
         </div>
         """, unsafe_allow_html=True)
 
-    # The "Your ₹100" Visual
     st.subheader("Where Every ₹100 Should Go (Dynamic Waterfall)")
     
     if allocations:
-        # Filter out 0% allocations for cleaner chart
         chart_data = pd.DataFrame([
             {"Category": k, "Percentage": v} for k, v in allocations.items() if v > 0
         ])
-        
         st.bar_chart(chart_data.set_index("Category"), height=400, color="#3b82f6")
     else:
         st.warning("Please update your profile to generate your allocation model.")
@@ -185,12 +179,14 @@ elif page == "AI Advisor":
     st.title("Gemini Strategic Advisor")
     st.markdown("AI insights based strictly on your deterministic profile outputs.")
     
-    st.info("The AI acts as an interpretive layer to explain your gaps and priorities, rather than generating its own math.")
     if st.button("Generate Strategy Brief"):
-        if "API_KEY" in st.secrets:
-            model = genai.GenerativeModel('gemini-1.5-pro')
-            prompt = f"Act as a strict, professional financial advisor. Analyze this user data: {st.session_state.profile}. Explain their most critical financial vulnerability right now in exactly 3 short sentences. Do not invent numbers."
-            response = model.generate_content(prompt)
-            st.success(response.text)
+        if AI_MODULE_READY and "API_KEY" in st.secrets:
+            try:
+                model = genai.GenerativeModel('gemini-1.5-pro')
+                prompt = f"Act as a strict, professional financial advisor. Analyze this user data: {st.session_state.profile}. Explain their most critical financial vulnerability right now in exactly 3 short sentences. Do not invent numbers."
+                response = model.generate_content(prompt)
+                st.success(response.text)
+            except Exception as e:
+                st.error(f"Error connecting to Gemini: {e}")
         else:
-            st.error("API Key not found in Streamlit secrets.")
+            st.error("Cannot generate strategy. Check API Key and Module Status in the sidebar.")
